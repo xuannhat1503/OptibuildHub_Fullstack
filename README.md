@@ -15,6 +15,7 @@
 - [Tính năng](#tính-năng)
 - [Công nghệ sử dụng](#công-nghệ-sử-dụng)
 - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
+- [Cơ sở dữ liệu](#cơ-sở-dữ-liệu)
 - [Cài đặt Backend](#cài-đặt-backend)
 - [Cài đặt Frontend](#cài-đặt-frontend)
 - [Biến môi trường](#biến-môi-trường)
@@ -84,6 +85,30 @@
 
 ---
 
+## Cơ sở dữ liệu
+
+**DBMS:** MySQL 8.0 — Database: `optibuild_hub` (charset `utf8mb4_unicode_ci`)
+
+Hibernate sẽ **tự động tạo toàn bộ bảng** khi khởi động ứng dụng lần đầu (`ddl-auto=update`), không cần chạy script tạo schema thủ công.
+
+### Sơ đồ bảng
+
+| Bảng | Mô tả |
+|---|---|
+| `users` | Tài khoản người dùng: email, password (bcrypt), role (`USER`/`ADMIN`), avatar |
+| `profiles` | Thông tin mở rộng: bio, social links (JSON) — 1-1 với `users` |
+| `parts` | Linh kiện PC: tên, danh mục, thương hiệu, thông số (`spec_json`), công suất, giá, ảnh, URL crawl |
+| `part_price_history` | Lịch sử giá linh kiện: giá, nguồn, thời điểm crawl |
+| `pc_builds` | Cấu hình PC: tiêu đề, tổng giá, tổng công suất, trạng thái chia sẻ |
+| `pc_build_items` | Các linh kiện trong từng cấu hình (nhiều-nhiều `pc_builds` ↔ `parts`) |
+| `posts` | Bài đăng diễn đàn: tiêu đề, nội dung, liên kết cấu hình PC (tuỳ chọn) |
+| `post_images` | Ảnh đính kèm bài đăng (1 bài nhiều ảnh) |
+| `comments` | Bình luận và trả lời (tự tham chiếu qua `parent_id`) |
+| `reactions` | Reaction bài đăng: `LIKE` hoặc `DISLIKE`, mỗi user 1 lần/bài |
+| `ratings` | Đánh giá sao linh kiện: điểm + nội dung, mỗi user 1 lần/linh kiện |
+
+---
+
 ## Cài đặt Backend
 
 ### 1. Clone repository
@@ -93,11 +118,13 @@ git clone https://github.com/xuannhat1503/OptibuildHub_Backend.git
 cd OptibuildHub_Backend
 ```
 
-### 2. Tạo database MySQL
+### 2. Tạo database
 
 ```sql
 CREATE DATABASE optibuild_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
+
+Các bảng sẽ được Hibernate tạo tự động khi backend khởi động lần đầu.
 
 ### 3. Cấu hình kết nối database
 
@@ -129,7 +156,11 @@ java -jar target/optibuild_hub-1.0-SNAPSHOT.jar
 
 Backend sẽ khởi động tại: `http://localhost:8080`
 
-> **Lưu ý:** Hibernate sẽ tự động tạo/cập nhật bảng (`ddl-auto=update`) khi ứng dụng khởi động lần đầu.
+> **Lưu ý:** Sau lần khởi động đầu tiên, hãy đăng ký tài khoản qua API hoặc giao diện web, sau đó cấp quyền ADMIN bằng lệnh SQL sau:
+>
+> ```sql
+> UPDATE users SET role = 'ADMIN' WHERE email = 'your@email.com';
+> ```
 
 ---
 
